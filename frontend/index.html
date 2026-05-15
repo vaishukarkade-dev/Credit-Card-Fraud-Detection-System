@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>FraudShield AI — AI-Powered Credit Card Fraud Detection</title>
+  <meta name="description" content="AI-powered credit card fraud detection system. Upload transactions, get instant risk scores, and visualize fraud patterns with 98.7% ROC-AUC accuracy." />
+  <meta name="keywords" content="fraud detection, credit card, machine learning, XGBoost, AI, risk scoring" />
+  <meta name="author" content="FraudShield AI" />
+
+  <!-- Open Graph -->
+  <meta property="og:title" content="FraudShield AI — Credit Card Fraud Detection" />
+  <meta property="og:description" content="Upload transactions, get instant AI-powered fraud risk scores, and visualize patterns." />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="/assets/og-preview.png" />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+
+  <!-- Fonts — preconnect for faster load -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind CSS (pinned version for reliability) -->
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: { extend: { fontFamily: { outfit: ['Outfit','sans-serif'] } } }
+    }
+  </script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+
+<body class="font-outfit bg-gray-950 text-gray-100 min-h-screen overflow-x-hidden dark">
+
+  <!-- Navbar -->
+  <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 py-4 px-6 flex items-center justify-between">
+    <a href="index.html" class="flex items-center gap-2 text-xl font-bold" aria-label="FraudShield AI Home">
+      <span>🛡️</span>
+      <span class="gradient-text">FraudShield AI</span>
+    </a>
+    <div class="hidden md:flex items-center gap-8 text-sm font-medium text-gray-300">
+      <a href="#features" class="hover:text-teal-400 transition-colors">Features</a>
+      <a href="#models" class="hover:text-teal-400 transition-colors">Models</a>
+    </div>
+    <div class="flex items-center gap-3">
+      <button id="theme-toggle" class="p-2 rounded-full glass-card hover:scale-110 transition-transform" aria-label="Toggle theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+      <a href="upload.html" class="btn-primary text-sm px-5 py-2">Launch App →</a>
+    </div>
+  </nav>
+
+  <!-- Hero -->
+  <section class="relative min-h-screen flex items-center justify-center pt-20 pb-16 px-6 overflow-hidden">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="grid-overlay"></div>
+
+    <div class="relative z-10 text-center max-w-5xl mx-auto">
+      <div class="inline-flex items-center gap-2 glass-card px-4 py-2 rounded-full text-sm text-teal-400 mb-8 animate-fade-in">
+        <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+        Powered by Random Forest · 99.74% ROC-AUC
+      </div>
+
+      <h1 class="text-5xl md:text-7xl font-extrabold leading-tight mb-6 animate-slide-up">
+        Detect Fraud<br/>
+        <span class="gradient-text">Before It Strikes</span>
+      </h1>
+
+      <p class="text-xl md:text-2xl text-gray-400 max-w-3xl mx-auto mb-10 animate-slide-up delay-100">
+        Upload transaction data, get instant AI-powered fraud risk scores,
+        and visualise patterns across your entire portfolio — in seconds.
+      </p>
+
+      <div class="flex flex-col sm:flex-row items-center justify-center gap-4 animate-slide-up delay-200">
+        <a href="upload.html" class="btn-primary text-lg px-8 py-4 group">
+          Start Detection <span class="ml-2 group-hover:translate-x-1 inline-block transition-transform">→</span>
+        </a>
+        <a href="dashboard.html" class="btn-secondary text-lg px-8 py-4">View Dashboard</a>
+      </div>
+
+      <!-- Stats -->
+      <div class="mt-20 grid grid-cols-2 md:grid-cols-4 gap-4 animate-fade-in delay-300">
+        <div class="glass-card p-5 rounded-2xl text-center stat-card">
+          <div class="text-3xl font-bold gradient-text counter" data-target="99.74">0</div>
+          <div class="text-gray-400 text-sm mt-1">ROC-AUC %</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl text-center stat-card">
+          <div class="text-3xl font-bold gradient-text">284K+</div>
+          <div class="text-gray-400 text-sm mt-1">Transactions Trained</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl text-center stat-card">
+          <div class="text-3xl font-bold gradient-text">&lt;50ms</div>
+          <div class="text-gray-400 text-sm mt-1">Prediction Latency</div>
+        </div>
+        <div class="glass-card p-5 rounded-2xl text-center stat-card">
+          <div class="text-3xl font-bold gradient-text">3</div>
+          <div class="text-gray-400 text-sm mt-1">Models Compared</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features -->
+  <section id="features" class="py-24 px-6 max-w-7xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold mb-4">Enterprise-Grade <span class="gradient-text">Features</span></h2>
+      <p class="text-gray-400 text-lg">Everything you need to protect your financial operations.</p>
+    </div>
+    <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">📊</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">Batch CSV Upload</h3>
+        <p class="text-gray-400">Drag & drop any CSV. Process thousands of transactions instantly with real-time progress.</p>
+      </div>
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">🎯</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">Risk Score 0–100%</h3>
+        <p class="text-gray-400">Every transaction gets a calibrated fraud probability score with HIGH / MEDIUM / SAFE labelling.</p>
+      </div>
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">📈</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">Analytics Dashboard</h3>
+        <p class="text-gray-400">Interactive pie charts, line graphs, and sortable tables with fraud row highlights.</p>
+      </div>
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">⚡</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">Real-Time Prediction</h3>
+        <p class="text-gray-400">Single-transaction form for instant checks — enter details and see results immediately.</p>
+      </div>
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">🤖</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">3-Model Ensemble</h3>
+        <p class="text-gray-400">XGBoost, Random Forest, Logistic Regression — best performer auto-selected by ROC-AUC.</p>
+      </div>
+      <div class="glass-card p-7 rounded-2xl hover:scale-[1.02] transition-all duration-300 group">
+        <div class="icon-badge mb-5">📥</div>
+        <h3 class="text-xl font-semibold mb-2 group-hover:text-teal-400 transition-colors">Export Results</h3>
+        <p class="text-gray-400">Download predictions as CSV. Integrate with your existing fraud operations workflow.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- How it works -->
+  <section class="py-24 px-6 relative overflow-hidden">
+    <div class="blob blob-4"></div>
+    <div class="max-w-5xl mx-auto text-center">
+      <h2 class="text-4xl font-bold mb-4">How It <span class="gradient-text">Works</span></h2>
+      <p class="text-gray-400 text-lg mb-16">Three steps from raw data to actionable insights.</p>
+      <div class="grid md:grid-cols-3 gap-8 relative">
+        <div class="glass-card p-8 rounded-2xl text-center relative">
+          <div class="step-number">01</div>
+          <div class="text-4xl mb-4">📁</div>
+          <h3 class="text-lg font-semibold mb-2">Upload CSV</h3>
+          <p class="text-gray-400 text-sm">Drop your transaction CSV. Standard 30-feature format.</p>
+        </div>
+        <div class="glass-card p-8 rounded-2xl text-center relative">
+          <div class="step-number">02</div>
+          <div class="text-4xl mb-4">🧠</div>
+          <h3 class="text-lg font-semibold mb-2">AI Analyzes</h3>
+          <p class="text-gray-400 text-sm">Random Forest scores each transaction with a fraud probability.</p>
+        </div>
+        <div class="glass-card p-8 rounded-2xl text-center relative">
+          <div class="step-number">03</div>
+          <div class="text-4xl mb-4">🛡️</div>
+          <h3 class="text-lg font-semibold mb-2">Get Insights</h3>
+          <p class="text-gray-400 text-sm">View flagged rows, risk badges, and download results.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Model table -->
+  <section id="models" class="py-24 px-6 max-w-5xl mx-auto">
+    <div class="text-center mb-16">
+      <h2 class="text-4xl font-bold mb-4">Model <span class="gradient-text">Performance</span></h2>
+      <p class="text-gray-400 text-lg">Trained on 284K+ transactions with SMOTE balancing.</p>
+    </div>
+    <div class="glass-card rounded-2xl overflow-hidden">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="bg-white/5 text-gray-400 uppercase text-xs tracking-wider">
+            <th class="text-left p-5">Model</th>
+            <th class="p-5">Precision</th>
+            <th class="p-5">Recall</th>
+            <th class="p-5">F1</th>
+            <th class="p-5">ROC-AUC</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr class="border-t border-white/5 text-gray-300 hover:bg-white/5 transition-colors">
+            <td class="p-5 font-medium">Logistic Regression</td>
+            <td class="p-5 text-center">0.87</td><td class="p-5 text-center">0.62</td>
+            <td class="p-5 text-center">0.73</td><td class="p-5 text-center">0.97</td>
+          </tr>
+          <tr class="border-t border-white/5 text-gray-300 hover:bg-white/5 transition-colors">
+            <td class="p-5 font-medium">XGBoost</td>
+            <td class="p-5 text-center">0.94</td><td class="p-5 text-center">0.83</td>
+            <td class="p-5 text-center">0.88</td><td class="p-5 text-center">0.987</td>
+          </tr>
+          <tr class="border-t border-white/5 bg-teal-600/10 text-white font-semibold">
+            <td class="p-5 flex items-center gap-2">
+              <span class="w-2 h-2 rounded-full bg-teal-400 animate-pulse"></span>
+              Random Forest ✅ Best
+            </td>
+            <td class="p-5 text-center text-teal-400">0.95</td>
+            <td class="p-5 text-center text-teal-400">0.79</td>
+            <td class="p-5 text-center text-teal-400">0.86</td>
+            <td class="p-5 text-center text-teal-400">0.9974</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- CTA -->
+  <section class="py-24 px-6 text-center relative overflow-hidden">
+    <div class="blob blob-5"></div>
+    <div class="max-w-3xl mx-auto relative z-10">
+      <h2 class="text-4xl md:text-5xl font-extrabold mb-6">
+        Ready to protect your <span class="gradient-text">transactions?</span>
+      </h2>
+      <p class="text-gray-400 text-xl mb-10">Upload your first CSV and see detection in action — for free.</p>
+      <a href="upload.html" class="btn-primary text-xl px-10 py-5">Start for Free →</a>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="border-t border-white/10 py-8 px-6 text-center text-gray-500 text-sm">
+    <p>🛡️ FraudShield AI · FastAPI + Random Forest + SMOTE</p>
+    <p class="mt-1">Dataset: <a href="https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud" target="_blank" rel="noopener noreferrer" class="text-teal-400 hover:underline">Kaggle Credit Card Fraud Detection</a></p>
+  </footer>
+
+  <script src="scripts/main.js"></script>
+</body>
+</html>

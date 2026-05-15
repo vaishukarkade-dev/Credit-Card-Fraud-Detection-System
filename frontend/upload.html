@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+  <title>Upload — FraudShield AI</title>
+  <meta name="description" content="Upload transaction CSV files or test single transactions for instant AI-powered fraud detection." />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com"/>
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700;800&family=Inter:wght@400;500&display=swap" rel="stylesheet"/>
+
+  <!-- Tailwind (pinned) -->
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles/main.css"/>
+  <style>
+    .upload-zone {
+      border: 2px dashed rgba(20,184,166,0.4);
+      border-radius: 20px;
+      background: rgba(20,184,166,0.03);
+      transition: all 0.3s ease;
+      cursor: pointer;
+      position: relative;
+      overflow: hidden;
+    }
+    .upload-zone::before {
+      content: '';
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(135deg, rgba(20,184,166,0.05), rgba(14,165,233,0.05));
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+    .upload-zone:hover, .upload-zone.drag-over { border-color: #14B8A6; }
+    .upload-zone:hover::before, .upload-zone.drag-over::before { opacity: 1; }
+    .upload-zone.file-loaded { border-color: #10b981; border-style: solid; background: rgba(16,185,129,0.05); }
+
+    .stat-pill {
+      background: rgba(255,255,255,0.04);
+      border: 1px solid rgba(255,255,255,0.08);
+      border-radius: 16px;
+      padding: 20px 16px;
+      text-align: center;
+      transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .stat-pill:hover { transform: translateY(-3px); box-shadow: 0 8px 30px rgba(14,165,233,0.12); }
+
+    .fraud-row { background: rgba(239,68,68,0.07) !important; }
+    .results-table th {
+      background: rgba(255,255,255,0.04); padding: 12px 14px;
+      font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.08em;
+      color: #64748b; white-space: nowrap; text-align: left;
+    }
+    .results-table td { padding: 11px 14px; font-size: 0.85rem; border-top: 1px solid rgba(255,255,255,0.05); }
+    .results-table tr:hover { background: rgba(255,255,255,0.03); }
+
+    .risk-badge {
+      display: inline-flex; align-items: center; gap: 4px;
+      padding: 2px 10px; border-radius: 20px; font-size: 0.68rem; font-weight: 700;
+    }
+    .badge-fraud  { background: rgba(239,68,68,0.15);  color:#f87171; border:1px solid rgba(239,68,68,0.3); }
+    .badge-safe   { background: rgba(16,185,129,0.15); color:#34d399; border:1px solid rgba(16,185,129,0.3); }
+    .badge-medium { background: rgba(251,146,60,0.15); color:#fb923c; border:1px solid rgba(251,146,60,0.3); }
+
+    .prog-track { height: 5px; background: rgba(255,255,255,0.08); border-radius: 99px; overflow: hidden; }
+    .prog-fill  { height: 100%; border-radius: 99px; background: linear-gradient(90deg,#14B8A6,#0EA5E9); transition: width 0.4s ease; }
+
+    .form-input {
+      width:100%; background: rgba(255,255,255,0.05);
+      border: 1px solid rgba(255,255,255,0.1); border-radius: 10px;
+      padding: 9px 12px; color: #f1f5f9; font-size: 0.82rem;
+      font-family: 'Inter',sans-serif; outline: none; transition: border-color 0.2s, box-shadow 0.2s;
+    }
+    .form-input:focus { border-color: #14B8A6; box-shadow: 0 0 0 3px rgba(20,184,166,0.12); }
+    .form-input::placeholder { color: #475569; }
+    label.fl { display:block; font-size:0.72rem; color:#64748b; margin-bottom:5px; font-weight:500; }
+
+    .panel { background: rgba(255,255,255,0.035); border: 1px solid rgba(255,255,255,0.08); border-radius: 24px; }
+
+    @keyframes scanline {
+      0%   { transform: translateY(-100%); opacity: 0; }
+      10%  { opacity: 0.6; }
+      90%  { opacity: 0.6; }
+      100% { transform: translateY(800%); opacity: 0; }
+    }
+    .scan-line {
+      position: absolute; left: 0; right: 0; height: 2px;
+      background: linear-gradient(90deg, transparent, #14B8A6, transparent);
+      animation: scanline 2s ease-in-out;
+      pointer-events: none;
+    }
+
+    .pulse-dot {
+      width: 8px; height: 8px; border-radius: 50%; background: #10b981;
+      animation: pulse-dot 1.5s infinite;
+    }
+    @keyframes pulse-dot { 0%,100%{opacity:1;transform:scale(1);} 50%{opacity:0.5;transform:scale(1.4);} }
+
+    #results-section { display:none; }
+    #results-section.visible { display:block; }
+
+    /* Responsive grid */
+    @media (max-width: 768px) {
+      #main-grid { grid-template-columns: 1fr !important; }
+      .stat-pill-grid { grid-template-columns: repeat(2, 1fr) !important; }
+    }
+  </style>
+</head>
+<body class="font-outfit min-h-screen overflow-x-hidden" style="background:#030712;color:#f1f5f9">
+
+  <!-- Background blobs -->
+  <div style="position:fixed;inset:0;pointer-events:none;z-index:0;overflow:hidden">
+    <div class="blob blob-1" style="opacity:0.12"></div>
+    <div class="blob blob-2" style="opacity:0.10"></div>
+  </div>
+
+  <!-- Navbar -->
+  <nav id="navbar" class="fixed top-0 w-full z-50 py-4 px-6 flex items-center justify-between" style="backdrop-filter:blur(20px);border-bottom:1px solid rgba(255,255,255,0.06);background:rgba(3,7,18,0.7)">
+    <a href="index.html" class="flex items-center gap-2 text-xl font-bold" style="text-decoration:none" aria-label="FraudShield AI Home">
+      <span style="font-size:1.4rem">🛡️</span>
+      <span class="gradient-text">FraudShield AI</span>
+    </a>
+    <div class="flex items-center gap-4">
+      <a href="index.html" style="font-size:0.85rem;color:#64748b;text-decoration:none">Home</a>
+      <a href="dashboard.html" style="font-size:0.85rem;color:#64748b;text-decoration:none">Dashboard</a>
+      <button id="theme-toggle" style="padding:8px;border-radius:50%;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);cursor:pointer;color:#f1f5f9;font-size:1rem" aria-label="Toggle theme">🌙</button>
+    </div>
+  </nav>
+
+  <main style="padding-top:100px;padding-bottom:80px;max-width:1200px;margin:0 auto;padding-left:24px;padding-right:24px;position:relative;z-index:1">
+
+    <!-- Header -->
+    <div style="text-align:center;margin-bottom:48px">
+      <div style="display:inline-flex;align-items:center;gap:8px;background:rgba(20,184,166,0.1);border:1px solid rgba(20,184,166,0.2);border-radius:99px;padding:6px 16px;font-size:0.8rem;color:#14B8A6;margin-bottom:16px">
+        <div class="pulse-dot"></div>
+        Model Active · Random Forest · ROC-AUC 0.9974
+      </div>
+      <h1 style="font-size:clamp(2rem,5vw,3.5rem);font-weight:800;margin-bottom:12px">
+        Fraud <span class="gradient-text">Detection</span> Engine
+      </h1>
+      <p style="color:#64748b;font-size:1.05rem">Upload a batch CSV or test a single transaction — results in milliseconds</p>
+    </div>
+
+    <!-- Two-column layout -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-bottom:32px" id="main-grid">
+
+      <!-- LEFT: CSV Upload -->
+      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(20,184,166,0.3),rgba(14,165,233,0.3));display:flex;align-items:center;justify-content:center;font-size:1.1rem">📁</div>
+            <h2 style="font-size:1.25rem;font-weight:700">Batch CSV Upload</h2>
+          </div>
+          <p style="font-size:0.82rem;color:#64748b">Analyze thousands of transactions at once</p>
+        </div>
+
+        <!-- Drop zone -->
+        <div class="upload-zone" id="drop-zone" style="padding:40px 24px;text-align:center" role="button" tabindex="0" aria-label="Click to upload CSV or drag and drop" onclick="document.getElementById('csv-input').click()">
+          <input id="csv-input" type="file" accept=".csv" style="display:none" aria-hidden="true"/>
+          <div id="drop-icon" style="font-size:2.8rem;margin-bottom:12px">☁️</div>
+          <p id="drop-text" style="font-weight:600;margin-bottom:6px">Drag &amp; drop your CSV here</p>
+          <p style="font-size:0.8rem;color:#475569">or click to browse &nbsp;·&nbsp; .csv files &nbsp;·&nbsp; up to 50,000 rows</p>
+        </div>
+
+        <!-- File info -->
+        <div id="file-info" style="display:none;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.2);border-radius:14px;padding:14px 16px;align-items:center;justify-content:space-between;gap:12px">
+          <div style="display:flex;align-items:center;gap:10px">
+            <span style="font-size:1.4rem">📄</span>
+            <div>
+              <div id="file-name" style="font-size:0.88rem;font-weight:600"></div>
+              <div id="file-size" style="font-size:0.75rem;color:#64748b"></div>
+            </div>
+          </div>
+          <button id="clear-file" style="color:#f87171;font-size:0.8rem;background:none;border:none;cursor:pointer;font-weight:600" aria-label="Remove file">✕ Remove</button>
+        </div>
+
+        <!-- Progress -->
+        <div id="progress-wrapper" style="display:none">
+          <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#64748b;margin-bottom:6px">
+            <span>Analyzing transactions...</span>
+            <span id="progress-pct">0%</span>
+          </div>
+          <div class="prog-track"><div id="progress-bar" class="prog-fill" style="width:0%"></div></div>
+        </div>
+
+        <!-- Error -->
+        <div id="upload-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:12px 16px;font-size:0.83rem;color:#f87171" role="alert"></div>
+
+        <!-- Buttons -->
+        <div style="display:flex;gap:12px">
+          <button id="predict-btn" disabled
+            style="flex:1;padding:14px;border-radius:14px;font-weight:700;font-size:0.95rem;cursor:pointer;border:none;background:linear-gradient(135deg,#0F766E,#0EA5E9);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;opacity:0.5">
+            <span id="predict-btn-icon" style="font-size:1rem">🔍</span>
+            <span id="predict-btn-text">Analyze CSV</span>
+          </button>
+          <button id="download-btn" style="display:none;padding:14px 18px;border-radius:14px;font-size:0.85rem;cursor:pointer;border:1px solid rgba(255,255,255,0.1);background:rgba(255,255,255,0.05);color:#f1f5f9;font-weight:600;transition:all 0.2s" title="Download results" aria-label="Download results as CSV">
+            📥
+          </button>
+        </div>
+
+        <!-- Sample files hint -->
+        <div style="background:rgba(14,165,233,0.06);border:1px solid rgba(14,165,233,0.15);border-radius:12px;padding:14px 16px">
+          <p style="font-size:0.8rem;font-weight:600;color:#38BDF8;margin-bottom:6px">Try a sample CSV:</p>
+          <div style="display:flex;flex-wrap:wrap;gap:6px" id="sample-btns">
+            <button onclick="loadSample('01_all_legit_weekend_shopping.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(16,185,129,0.3);background:rgba(16,185,129,0.08);color:#34d399;cursor:pointer">✅ All Legit (50)</button>
+            <button onclick="loadSample('02_all_fraud_stolen_card.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer">🚨 All Fraud (30)</button>
+            <button onclick="loadSample('03_mixed_corporate_card.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(251,146,60,0.3);background:rgba(251,146,60,0.08);color:#fb923c;cursor:pointer">⚠️ Mixed (80)</button>
+            <button onclick="loadSample('04_edge_cases_online_merchant.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.08);color:#a5b4fc;cursor:pointer">🔬 Edge Cases (40)</button>
+            <button onclick="loadSample('05_large_batch_retailer_day.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(14,165,233,0.3);background:rgba(14,165,233,0.08);color:#38BDF8;cursor:pointer">📦 Large Batch (500)</button>
+            <button onclick="loadSample('06_high_value_transactions.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(234,179,8,0.3);background:rgba(234,179,8,0.08);color:#fbbf24;cursor:pointer">💎 High Value (100)</button>
+            <button onclick="loadSample('07_card_testing_attack.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(239,68,68,0.3);background:rgba(239,68,68,0.08);color:#f87171;cursor:pointer">⚡ Card Attack (200)</button>
+            <button onclick="loadSample('08_ecommerce_returns_abuse.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(251,146,60,0.3);background:rgba(251,146,60,0.08);color:#fb923c;cursor:pointer">🛒 Ecommerce (150)</button>
+            <button onclick="loadSample('09_international_travel_card.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(99,102,241,0.3);background:rgba(99,102,241,0.08);color:#a5b4fc;cursor:pointer">✈️ Travel Card (200)</button>
+            <button onclick="loadSample('10_atm_withdrawals_50_50.csv')" style="font-size:0.72rem;padding:4px 10px;border-radius:8px;border:1px solid rgba(20,184,166,0.3);background:rgba(20,184,166,0.08);color:#2dd4bf;cursor:pointer">🏧 ATM 50/50 (100)</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- RIGHT: Single Transaction -->
+      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:20px">
+        <div>
+          <div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">
+            <div style="width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,rgba(99,102,241,0.3),rgba(14,165,233,0.3));display:flex;align-items:center;justify-content:center;font-size:1.1rem">⚡</div>
+            <h2 style="font-size:1.25rem;font-weight:700">Single Transaction</h2>
+          </div>
+          <p style="font-size:0.82rem;color:#64748b">Instant real-time fraud check on one transaction</p>
+        </div>
+
+        <form id="single-form" style="display:flex;flex-direction:column;gap:14px;flex:1" novalidate>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+            <div>
+              <label class="fl" for="f-amount">Amount (USD) *</label>
+              <input id="f-amount" type="number" step="0.01" min="0" class="form-input" placeholder="e.g. 149.62" required/>
+            </div>
+            <div>
+              <label class="fl" for="f-time">Time (seconds)</label>
+              <input id="f-time" type="number" step="1" min="0" class="form-input" placeholder="e.g. 86400"/>
+            </div>
+          </div>
+          <div>
+            <label class="fl">PCA Features V1–V10 <span style="color:#334155">(leave 0 for default)</span></label>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px" id="v-features-grid"></div>
+            <button type="button" id="show-more-btn" style="margin-top:8px;font-size:0.75rem;color:#14B8A6;background:none;border:none;cursor:pointer;font-weight:600">+ Show V11–V28</button>
+            <div style="display:grid;grid-template-columns:repeat(5,1fr);gap:6px;margin-top:6px" id="v-extra-grid" class="hidden"></div>
+          </div>
+          <button type="submit" style="padding:14px;border-radius:14px;font-weight:700;font-size:0.95rem;cursor:pointer;border:none;background:linear-gradient(135deg,#4F46E5,#0EA5E9);color:#fff;display:flex;align-items:center;justify-content:center;gap:8px;transition:all 0.2s;margin-top:auto">
+            🔮 Check for Fraud
+          </button>
+        </form>
+
+        <!-- Single Result -->
+        <div id="single-result" style="display:none;border-radius:16px;padding:20px;text-align:center;position:relative;overflow:hidden">
+          <div id="scan-line-el" style="display:none" class="scan-line"></div>
+          <div id="result-emoji" style="font-size:2.5rem;margin-bottom:8px"></div>
+          <div id="result-label" style="font-size:1.8rem;font-weight:800;margin-bottom:4px"></div>
+          <div id="result-confidence" style="font-size:0.82rem;color:#64748b;margin-bottom:16px"></div>
+          <div style="margin-bottom:8px">
+            <div style="display:flex;justify-content:space-between;font-size:0.75rem;color:#64748b;margin-bottom:5px">
+              <span>Fraud Risk Score</span><span id="result-score" style="font-weight:700;color:#f1f5f9">0%</span>
+            </div>
+            <div class="prog-track"><div id="result-bar" class="prog-fill" style="width:0%;transition:width 0.8s ease"></div></div>
+          </div>
+          <div id="result-prob" style="font-size:0.75rem;color:#475569;margin-top:8px"></div>
+        </div>
+
+        <div id="single-error" style="display:none;background:rgba(239,68,68,0.1);border:1px solid rgba(239,68,68,0.25);border-radius:12px;padding:12px 16px;font-size:0.83rem;color:#f87171" role="alert"></div>
+      </div>
+    </div>
+
+    <!-- Results Section -->
+    <div id="results-section">
+      <!-- Summary pills -->
+      <div class="stat-pill-grid" style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px">
+        <div class="stat-pill">
+          <div id="s-total" style="font-size:2rem;font-weight:800" class="gradient-text">—</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:4px">Total Transactions</div>
+        </div>
+        <div class="stat-pill">
+          <div id="s-fraud" style="font-size:2rem;font-weight:800;color:#f87171">—</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:4px">Fraud Detected</div>
+        </div>
+        <div class="stat-pill">
+          <div id="s-legit" style="font-size:2rem;font-weight:800;color:#34d399">—</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:4px">Legitimate</div>
+        </div>
+        <div class="stat-pill">
+          <div id="s-rate" style="font-size:2rem;font-weight:800" class="gradient-text">—</div>
+          <div style="font-size:0.78rem;color:#64748b;margin-top:4px">Fraud Rate</div>
+        </div>
+      </div>
+
+      <!-- Results table -->
+      <div class="panel" style="overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:18px 20px;border-bottom:1px solid rgba(255,255,255,0.06)">
+          <div>
+            <h3 style="font-size:1.05rem;font-weight:700">Prediction Results</h3>
+            <p style="font-size:0.78rem;color:#64748b;margin-top:2px">Sorted by row number · Fraud rows highlighted</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <select id="filter-select" class="form-input" style="width:auto;padding:7px 12px;font-size:0.8rem" aria-label="Filter results">
+              <option value="all">All Rows</option>
+              <option value="fraud">Fraud Only</option>
+              <option value="legit">Legit Only</option>
+            </select>
+            <a id="go-dashboard" href="dashboard.html" style="display:none;padding:8px 16px;border-radius:10px;font-size:0.82rem;font-weight:700;background:linear-gradient(135deg,#0F766E,#0EA5E9);color:#fff;text-decoration:none">
+              📊 Dashboard
+            </a>
+          </div>
+        </div>
+        <div style="overflow-x:auto;max-height:500px;overflow-y:auto">
+          <table class="results-table" style="width:100%;border-collapse:collapse">
+            <thead style="position:sticky;top:0;z-index:5">
+              <tr>
+                <th>Row</th><th>Amount</th><th>Risk Score</th>
+                <th>Probability</th><th>Label</th><th>Confidence</th>
+              </tr>
+            </thead>
+            <tbody id="results-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="scripts/main.js"></script>
+  <script src="scripts/upload.js"></script>
+  <script>
+    // Sample file loader — fetches from frontend/samples/ (served by HTTP server or FastAPI)
+    async function loadSample(filename) {
+      try {
+        const res = await fetch('./samples/' + filename);
+        if (!res.ok) throw new Error('File not found');
+        const blob = await res.blob();
+        const file = new File([blob], filename, { type: 'text/csv' });
+        handleFile(file);
+      } catch(e) {
+        const errEl = document.getElementById('upload-error');
+        errEl.textContent = 'Sample file not available. Try uploading a CSV manually.';
+        errEl.style.display = 'block';
+      }
+    }
+  </script>
+</body>
+</html>

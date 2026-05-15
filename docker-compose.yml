@@ -1,0 +1,27 @@
+# ── FraudShield AI — Docker Compose ─────────────────────────────────────
+# Single-command deployment: docker compose up --build
+
+version: "3.9"
+
+services:
+  fraudshield:
+    build: .
+    container_name: fraudshield-ai
+    ports:
+      - "${PORT:-8000}:${PORT:-8000}"
+    environment:
+      - PORT=${PORT:-8000}
+      - HOST=0.0.0.0
+      - FRONTEND_ORIGIN=${FRONTEND_ORIGIN:-*}
+      - WEB_CONCURRENCY=${WEB_CONCURRENCY:-2}
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+    volumes:
+      # Persist model artifacts (optional — remove if baked into image)
+      - ./backend/model:/app/backend/model:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health')"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s

@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dashboard — FraudShield AI</title>
+  <meta name="description" content="Analytics dashboard — fraud vs legit breakdown, risk distribution, and transaction insights." />
+
+  <!-- Favicon -->
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🛡️</text></svg>" />
+
+  <!-- Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
+
+  <!-- Tailwind (pinned) -->
+  <script src="https://cdn.tailwindcss.com/3.4.1"></script>
+  <script>tailwind.config = { darkMode: 'class', theme: { extend: { fontFamily: { outfit: ['Outfit','sans-serif'] } } } }</script>
+
+  <!-- Chart.js (pinned) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.7/dist/chart.umd.min.js"></script>
+
+  <!-- Custom styles -->
+  <link rel="stylesheet" href="styles/main.css" />
+</head>
+
+<body class="font-outfit bg-gray-950 text-gray-100 min-h-screen dark">
+
+  <!-- Navbar -->
+  <nav id="navbar" class="fixed top-0 w-full z-50 transition-all duration-300 py-4 px-6 flex items-center justify-between">
+    <a href="index.html" class="flex items-center gap-2 text-xl font-bold" aria-label="FraudShield AI Home">
+      <span>🛡️</span><span class="gradient-text">FraudShield AI</span>
+    </a>
+    <div class="flex items-center gap-3">
+      <a href="upload.html" class="text-sm text-gray-400 hover:text-teal-400 transition-colors">← Upload</a>
+      <button id="theme-toggle" class="p-2 rounded-full glass-card hover:scale-110 transition-transform" aria-label="Toggle theme">
+        <span id="theme-icon">🌙</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Empty state (shown when no data) -->
+  <div id="empty-state" class="pt-36 pb-20 px-6 text-center max-w-lg mx-auto">
+    <div class="text-6xl mb-6">📊</div>
+    <h2 class="text-3xl font-bold mb-3">No Data Yet</h2>
+    <p class="text-gray-400 mb-8">Upload a CSV on the Upload page first, then return here to see your analytics.</p>
+    <a href="upload.html" class="btn-primary text-lg px-8 py-4">Upload Transactions →</a>
+  </div>
+
+  <!-- Dashboard content (hidden until data loaded) -->
+  <main id="dashboard-main" class="hidden pt-28 pb-20 px-6 max-w-7xl mx-auto">
+    <div class="blob blob-1 opacity-10"></div>
+    <div class="blob blob-2 opacity-10"></div>
+
+    <!-- Header -->
+    <div class="relative z-10 flex flex-col md:flex-row md:items-center justify-between mb-10 gap-4">
+      <div>
+        <h1 class="text-4xl font-extrabold mb-1">Analytics <span class="gradient-text">Dashboard</span></h1>
+        <p id="dash-subtitle" class="text-gray-400">Showing results from your last upload</p>
+      </div>
+      <div class="flex gap-3">
+        <button id="refresh-btn" class="btn-secondary text-sm px-5 py-2">🔄 Refresh</button>
+        <a href="upload.html" class="btn-primary text-sm px-5 py-2">New Upload →</a>
+      </div>
+    </div>
+
+    <!-- KPI cards -->
+    <div class="relative z-10 grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
+      <div class="glass-card p-5 rounded-2xl stat-card">
+        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Total Transactions</div>
+        <div id="kpi-total" class="text-3xl font-bold gradient-text">—</div>
+      </div>
+      <div class="glass-card p-5 rounded-2xl stat-card">
+        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Fraud Detected</div>
+        <div id="kpi-fraud" class="text-3xl font-bold text-red-400">—</div>
+      </div>
+      <div class="glass-card p-5 rounded-2xl stat-card">
+        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Legitimate</div>
+        <div id="kpi-legit" class="text-3xl font-bold text-emerald-400">—</div>
+      </div>
+      <div class="glass-card p-5 rounded-2xl stat-card">
+        <div class="text-xs text-gray-400 uppercase tracking-wider mb-1">Fraud Rate</div>
+        <div id="kpi-rate" class="text-3xl font-bold gradient-text">—</div>
+      </div>
+    </div>
+
+    <!-- Charts row -->
+    <div class="relative z-10 grid md:grid-cols-2 gap-6 mb-8">
+
+      <!-- Pie chart -->
+      <div class="glass-card rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-4">Fraud vs Legitimate</h3>
+        <div class="chart-wrapper" style="max-height:300px;">
+          <canvas id="pie-chart"></canvas>
+        </div>
+        <div class="flex justify-center gap-6 mt-4 text-sm">
+          <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-red-400 inline-block"></span>Fraud</span>
+          <span class="flex items-center gap-2"><span class="w-3 h-3 rounded-full bg-emerald-400 inline-block"></span>Legitimate</span>
+        </div>
+      </div>
+
+      <!-- Risk distribution bar chart -->
+      <div class="glass-card rounded-2xl p-6">
+        <h3 class="font-semibold text-lg mb-4">Risk Score Distribution</h3>
+        <div class="chart-wrapper" style="max-height:300px;">
+          <canvas id="bar-chart"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <!-- Line chart (risk over transactions) -->
+    <div class="relative z-10 glass-card rounded-2xl p-6 mb-8">
+      <h3 class="font-semibold text-lg mb-4">Risk Score Over Transactions</h3>
+      <div class="chart-wrapper" style="max-height:260px;">
+        <canvas id="line-chart"></canvas>
+      </div>
+    </div>
+
+    <!-- Top fraud transactions table -->
+    <div class="relative z-10 glass-card rounded-2xl overflow-hidden">
+      <div class="flex items-center justify-between p-5 border-b border-white/5">
+        <h3 class="font-semibold text-lg">🚨 Highest Risk Transactions (Top 20)</h3>
+        <button id="dash-download" class="btn-secondary text-xs px-4 py-2" aria-label="Export results as CSV">📥 Export CSV</button>
+      </div>
+      <div class="overflow-x-auto max-h-[400px] overflow-y-auto">
+        <table class="results-table w-full">
+          <thead class="sticky top-0 z-10">
+            <tr>
+              <th>Rank</th>
+              <th>Row</th>
+              <th>Amount</th>
+              <th>Risk Score</th>
+              <th>Probability</th>
+              <th>Confidence</th>
+            </tr>
+          </thead>
+          <tbody id="top-fraud-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+
+  </main>
+
+  <script src="scripts/main.js"></script>
+  <script src="scripts/dashboard.js"></script>
+</body>
+</html>

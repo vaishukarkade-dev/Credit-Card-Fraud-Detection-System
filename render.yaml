@@ -1,0 +1,21 @@
+# ── Render.com Blueprint ────────────────────────────────────────────────
+# Deploy with: "New > Blueprint" > connect this repo
+
+services:
+  - type: web
+    name: fraudshield-ai
+    runtime: python
+    region: oregon
+    plan: free
+    buildCommand: pip install -r backend/requirements.txt
+    startCommand: cd backend && gunicorn main:app --bind 0.0.0.0:$PORT --workers 2 --worker-class uvicorn.workers.UvicornWorker --timeout 120
+    healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: "3.11.9"
+      - key: FRONTEND_ORIGIN
+        value: "*"
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: LOG_LEVEL
+        value: "info"

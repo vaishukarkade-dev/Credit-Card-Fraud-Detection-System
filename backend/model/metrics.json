@@ -1,0 +1,62 @@
+{
+  "best_model": "Random Forest",
+  "best_roc_auc": 0.9974,
+  "feature_names": [
+    "Time",
+    "V1",
+    "V2",
+    "V3",
+    "V4",
+    "V5",
+    "V6",
+    "V7",
+    "V8",
+    "V9",
+    "V10",
+    "V11",
+    "V12",
+    "V13",
+    "V14",
+    "V15",
+    "V16",
+    "V17",
+    "V18",
+    "V19",
+    "V20",
+    "V21",
+    "V22",
+    "V23",
+    "V24",
+    "V25",
+    "V26",
+    "V27",
+    "V28",
+    "Amount"
+  ],
+  "all_metrics": [
+    {
+      "model": "Logistic Regression",
+      "accuracy": 0.9928,
+      "precision": 0.1884,
+      "recall": 0.9592,
+      "f1": 0.3149,
+      "roc_auc": 0.9825
+    },
+    {
+      "model": "Random Forest",
+      "accuracy": 0.9999,
+      "precision": 1.0,
+      "recall": 0.9388,
+      "f1": 0.9684,
+      "roc_auc": 0.9974
+    },
+    {
+      "model": "XGBoost",
+      "accuracy": 0.9999,
+      "precision": 0.9688,
+      "recall": 0.949,
+      "f1": 0.9588,
+      "roc_auc": 0.9875
+    }
+  ]
+}
