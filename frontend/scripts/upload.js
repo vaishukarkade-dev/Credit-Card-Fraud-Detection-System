@@ -354,11 +354,12 @@ if (singleForm) {
           };
         }
 
-        // Add index to match batch row format
+        // Add index to match batch row format perfectly and avoid dashboard JS crashes
         const newPred = {
           row_index: batchData.predictions.length,
-          Time: body.Time || 0.0,
-          Amount: body.Amount || 0.0,
+          row: `Single #${batchData.predictions.length + 1}`,
+          time: body.Time || 0.0,
+          amount: body.Amount || 0.0,
           fraud_probability: data.fraud_probability,
           risk_score: data.risk_score,
           label: data.label,
