@@ -1,42 +1,11 @@
 {
-  "version": 2,
-  "framework": null,
-  "rewrites": [
-    {
-      "source": "/(predict|batch_predict|health|metrics|docs|openapi.json|redoc)",
-      "destination": "/api/index.py"
+  "experimentalServices": {
+    "frontend": {
+      "routePrefix": "/"
     },
-    {
-      "source": "/styles/(.*)",
-      "destination": "/frontend/styles/$1"
-    },
-    {
-      "source": "/scripts/(.*)",
-      "destination": "/frontend/scripts/$1"
-    },
-    {
-      "source": "/assets/(.*)",
-      "destination": "/frontend/assets/$1"
-    },
-    {
-      "source": "/samples/(.*)",
-      "destination": "/frontend/samples/$1"
-    },
-    {
-      "source": "/",
-      "destination": "/frontend/index.html"
-    },
-    {
-      "source": "/upload",
-      "destination": "/frontend/upload.html"
-    },
-    {
-      "source": "/dashboard",
-      "destination": "/frontend/dashboard.html"
-    },
-    {
-      "source": "/(.*)",
-      "destination": "/frontend/$1"
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
     }
-  ]
+  }
 }

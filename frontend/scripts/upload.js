@@ -9,14 +9,19 @@
 
 // ── Auto-detect API base URL ──────────────────────────────────────────
 const API_BASE = (() => {
+  // If served from Vercel under experimentalServices
+  if (window.location.hostname.includes('vercel.app')) {
+    return '/_/backend';
+  }
   // If served from FastAPI (port 8000 or any non-5500), API is same-origin
   const port = window.location.port;
   if (port && port !== '5500' && port !== '5501' && port !== '3000') {
-    return '';  // Same origin — relative fetch
+    return '';  // Same origin — relative fetch (Render / Local host)
   }
   // Dev mode: Live Server on 5500/5501, API on 8000
   return 'http://localhost:8000';
 })();
+
 
 // ── Helpers ────────────────────────────────────────────────────────────────
 function show(el) { if (el) el.style.display = el._displayType || 'flex'; }
