@@ -16,6 +16,34 @@
       "dest": "/api/index.py"
     },
     {
+      "src": "/styles/(.*)",
+      "dest": "/frontend/styles/$1"
+    },
+    {
+      "src": "/scripts/(.*)",
+      "dest": "/frontend/scripts/$1"
+    },
+    {
+      "src": "/assets/(.*)",
+      "dest": "/frontend/assets/$1"
+    },
+    {
+      "src": "/samples/(.*)",
+      "dest": "/frontend/samples/$1"
+    },
+    {
+      "src": "/upload",
+      "dest": "/frontend/upload.html"
+    },
+    {
+      "src": "/dashboard",
+      "dest": "/frontend/dashboard.html"
+    },
+    {
+      "src": "/",
+      "dest": "/frontend/index.html"
+    },
+    {
       "src": "/(.*)",
       "dest": "/frontend/$1"
     }
