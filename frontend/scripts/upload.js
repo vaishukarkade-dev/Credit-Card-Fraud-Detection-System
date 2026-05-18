@@ -337,6 +337,45 @@ if (singleForm) {
         throw new Error(j.detail || 'Prediction failed');
       }
       const data    = await res.json();
+
+      // ── Update LocalStorage / Dashboard Pool ──────────────────────────────
+      try {
+        let batch = localStorage.getItem('fs-batch');
+        let batchData;
+        if (batch) {
+          batchData = JSON.parse(batch);
+        } else {
+          batchData = {
+            total_rows: 0,
+            fraud_count: 0,
+            legit_count: 0,
+            fraud_rate: 0.0,
+            predictions: []
+          };
+        }
+
+        // Add index to match batch row format
+        const newPred = {
+          row_index: batchData.predictions.length,
+          Time: body.Time || 0.0,
+          Amount: body.Amount || 0.0,
+          fraud_probability: data.fraud_probability,
+          risk_score: data.risk_score,
+          label: data.label,
+          confidence: data.confidence
+        };
+
+        batchData.predictions.push(newPred);
+        batchData.total_rows = batchData.predictions.length;
+        batchData.fraud_count = batchData.predictions.filter(p => p.label === 'FRAUD').length;
+        batchData.legit_count = batchData.total_rows - batchData.fraud_count;
+        batchData.fraud_rate = parseFloat(((batchData.fraud_count / batchData.total_rows) * 100).toFixed(4));
+
+        localStorage.setItem('fs-batch', JSON.stringify(batchData));
+      } catch(e) {
+        console.error('Failed to update local storage with single transaction prediction:', e);
+      }
+
       const isFraud = data.label === 'FRAUD';
       const isHigh  = data.confidence === 'HIGH';
       const color   = isFraud ? '#f87171' : '#34d399';
