@@ -1,0 +1,122 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 300 200" width="100%" height="100%">
+  <defs>
+    <!-- Background Gradient -->
+    <linearGradient id="bg-grad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#0B0F19" />
+      <stop offset="100%" stop-color="#111827" />
+    </linearGradient>
+
+    <!-- Gauge Gradients -->
+    <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#10B981" />    <!-- Green / Safe -->
+      <stop offset="50%" stop-color="#F59E0B" />   <!-- Yellow / Suspicious -->
+      <stop offset="100%" stop-color="#EF4444" />  <!-- Red / Fraud -->
+    </linearGradient>
+
+    <!-- Drop Shadows -->
+    <filter id="shadow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#000" flood-opacity="0.5" />
+    </filter>
+  </defs>
+
+  <style>
+    .background {
+      fill: url(#bg-grad);
+      rx: 12px;
+    }
+    .gauge-track {
+      fill: none;
+      stroke: #1F2937;
+      stroke-width: 16;
+      stroke-linecap: round;
+    }
+    .gauge-fill {
+      fill: none;
+      stroke: url(#gauge-grad);
+      stroke-width: 16;
+      stroke-linecap: round;
+      stroke-dasharray: 220;
+      stroke-dashoffset: 220;
+      animation: fillGauge 2s ease-out forwards;
+    }
+
+    /* Animated Swinging Needle */
+    .needle {
+      fill: #F9FAFB;
+      stroke: #EF4444;
+      stroke-width: 1;
+      transform-origin: 150px 150px;
+      animation: swingNeedle 2.5s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+      filter: url(#shadow);
+    }
+
+    .needle-hub {
+      fill: #1F2937;
+      stroke: #9CA3AF;
+      stroke-width: 2;
+    }
+
+    .status-text {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 14px;
+      font-weight: 700;
+      fill: #EF4444;
+      opacity: 0;
+      animation: fadeInText 1s ease-out 1.8s forwards;
+    }
+    .score-text {
+      font-family: 'Inter', system-ui, sans-serif;
+      font-size: 11px;
+      font-weight: 600;
+      fill: #9CA3AF;
+    }
+
+    /* Animation Keyframes */
+    @keyframes fillGauge {
+      to {
+        stroke-dashoffset: 44; /* Fills 80% of the gauge representing the high-risk region */
+      }
+    }
+    @keyframes swingNeedle {
+      0% {
+        transform: rotate(-90deg); /* Fully Safe start */
+      }
+      70% {
+        transform: rotate(62deg);  /* Over-swings to high danger zone */
+      }
+      85% {
+        transform: rotate(45deg);  /* Rebounds slightly */
+      }
+      100% {
+        transform: rotate(54deg);  /* Settles at ~85% Risk Score (High Fraud Area) */
+      }
+    }
+    @keyframes fadeInText {
+      to {
+        opacity: 1;
+      }
+    }
+  </style>
+
+  <!-- Background Card -->
+  <rect width="300" height="200" class="background" />
+
+  <!-- Gauge Arc Path (r=70, cx=150, cy=150) -->
+  <!-- Arc length = ~220 (180 degrees) -->
+  <path d="M 80,150 A 70,70 0 0,1 220,150" class="gauge-track" />
+  <path d="M 80,150 A 70,70 0 0,1 220,150" class="gauge-fill" />
+
+  <!-- Needle Shape: centered on 150,150 pointing up to 150,70 -->
+  <polygon points="146,150 150,65 154,150" class="needle" />
+  <circle cx="150" cy="150" r="10" class="needle-hub" />
+  <circle cx="150" cy="150" r="4" fill="#EF4444" />
+
+  <!-- Interactive Labels -->
+  <text x="75" y="172" class="score-text" text-anchor="middle" fill="#10B981">SAFE</text>
+  <text x="150" y="60" class="score-text" text-anchor="middle" fill="#F59E0B">RISK</text>
+  <text x="225" y="172" class="score-text" text-anchor="middle" fill="#EF4444">FRAUD</text>
+
+  <!-- Result Text Display -->
+  <text x="150" y="130" class="status-text" text-anchor="middle">HIGH RISK: 85%</text>
+  <text x="150" y="180" class="score-text" text-anchor="middle" font-size="10">Real-Time Risk Scoring Output</text>
+</svg>
