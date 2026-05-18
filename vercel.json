@@ -1,56 +1,12 @@
 {
-  "version": 2,
-  "builds": [
-    {
-      "src": "api/index.py",
-      "use": "@vercel/python"
+  "experimentalServices": {
+    "frontend": {
+      "entrypoint": "frontend",
+      "routePrefix": "/"
     },
-    {
-      "src": "frontend/**",
-      "use": "@vercel/static"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/(predict|batch_predict|health|metrics|docs|openapi.json|redoc)(.*)",
-      "dest": "/api/index.py"
-    },
-    {
-      "src": "/styles/(.*)",
-      "dest": "/frontend/styles/$1"
-    },
-    {
-      "src": "/scripts/(.*)",
-      "dest": "/frontend/scripts/$1"
-    },
-    {
-      "src": "/assets/(.*)",
-      "dest": "/frontend/assets/$1"
-    },
-    {
-      "src": "/samples/(.*)",
-      "dest": "/frontend/samples/$1"
-    },
-    {
-      "src": "/upload",
-      "dest": "/frontend/upload.html"
-    },
-    {
-      "src": "/dashboard",
-      "dest": "/frontend/dashboard.html"
-    },
-    {
-      "src": "/",
-      "dest": "/frontend/index.html"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "/frontend/$1"
-    }
-  ],
-  "functions": {
-    "api/index.py": {
-      "runtime": "python3.11"
+    "backend": {
+      "entrypoint": "backend",
+      "routePrefix": "/_/backend"
     }
   }
 }
