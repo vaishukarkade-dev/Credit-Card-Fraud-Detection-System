@@ -1,16 +1,20 @@
+"""
+api/index.py
+------------
+Vercel Serverless Function entry point for FraudShield AI FastAPI backend.
+Vercel @vercel/python builder looks for a variable named 'app' at module level.
+"""
+
 import os
 import sys
 
-# Dynamic path injection for serverless execution environment
-current_dir = os.path.dirname(__file__)
-root_dir = os.path.abspath(os.path.join(current_dir, ".."))
-backend_dir = os.path.abspath(os.path.join(root_dir, "backend"))
+# ── Resolve paths so imports work inside Vercel's serverless sandbox ───
+ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+BACKEND = os.path.join(ROOT, "backend")
 
-sys.path.insert(0, backend_dir)
-sys.path.insert(0, root_dir)
+for path in [ROOT, BACKEND]:
+    if path not in sys.path:
+        sys.path.insert(0, path)
 
-# Import the FastAPI application singleton
-from backend.main import app
-
-# Vercel serverless requires a variable named 'handler' or 'app' at module level
-app = app
+# ── Import FastAPI app ──────────────────────────────────────────────────
+from main import app  # noqa: E402  (backend/main.py)
