@@ -271,6 +271,7 @@ if FRONTEND_DIR.exists():
 
     # Serve HTML pages explicitly so SPA-like routing works
     @app.get("/", include_in_schema=False)
+    @app.get("/index.html", include_in_schema=False)
     async def serve_index():
         return FileResponse(str(FRONTEND_DIR / "index.html"), media_type="text/html")
 
