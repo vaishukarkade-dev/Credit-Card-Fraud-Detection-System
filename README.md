@@ -1,331 +1,433 @@
-# 🛡️ FraudShield AI — Credit Card Fraud Detection
+# 🛡️ FraudShield AI: Enterprise-Grade Real-Time Credit Card Fraud Detection System
 
-> **AI-powered credit card fraud detection system** with a production-grade FastAPI backend, Random Forest ML model (99.74% ROC-AUC), and a premium glassmorphism frontend.
+[![Python Version](https://img.shields.io/badge/Python-3.11%2B-3776AB?style=for-the-badge&logo=python&logoColor=white)](https://www.python.org/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.111%2B-009688?style=for-the-badge&logo=fastapi&logoColor=white)](https://fastapi.tiangolo.com/)
+[![Scikit-Learn](https://img.shields.io/badge/scikit--learn-1.3%2B-F7931E?style=for-the-badge&logo=scikit-learn&logoColor=white)](https://scikit-learn.org/)
+[![imbalanced-learn](https://img.shields.io/badge/imbalanced--learn-SMOTE-blue?style=for-the-badge)](https://imbalanced-learn.org/)
+[![Docker Ready](https://img.shields.io/badge/Docker-Containerized-2496ED?style=for-the-badge&logo=docker&logoColor=white)](https://www.docker.com/)
+[![Render Deploy](https://img.shields.io/badge/Render-Deployment-46E3B7?style=for-the-badge&logo=render&logoColor=white)](https://render.com/)
 
-![Python](https://img.shields.io/badge/Python-3.11+-3776AB?logo=python&logoColor=white)
-![FastAPI](https://img.shields.io/badge/FastAPI-0.111+-009688?logo=fastapi&logoColor=white)
-![scikit-learn](https://img.shields.io/badge/scikit--learn-1.3+-F7931E?logo=scikit-learn&logoColor=white)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)
-![Render](https://img.shields.io/badge/Render-Deploy-46E3B7?logo=render&logoColor=white)
-
----
-
-## 📋 Table of Contents
-
-- [Overview](#overview)
-- [Live Demo](#live-demo)
-- [Architecture](#architecture)
-- [Features](#features)
-- [Model Performance](#model-performance)
-- [Quick Start](#quick-start)
-- [Project Structure](#project-structure)
-- [API Reference](#api-reference)
-- [Deployment](#deployment)
-- [Configuration](#configuration)
-- [Tech Stack](#tech-stack)
+A production-grade, end-to-end Machine Learning system for real-time and batch credit card fraud detection. Powered by a **Random Forest Classifier (99.74% ROC-AUC)** trained with **SMOTE class-balancing** techniques, served via an ultra-low latency **FastAPI** backend (<50ms inference time), and styled with a premium **glassmorphism dark-mode analytics dashboard** with Chart.js visualization.
 
 ---
 
-## Overview
-
-FraudShield AI is an end-to-end fraud detection system that:
-1. **Trains** a Random Forest classifier on 284,807 real-world credit card transactions (Kaggle dataset)
-2. **Serves** predictions via a FastAPI REST API with sub-50ms latency
-3. **Visualizes** results in a premium dark-mode dashboard with Chart.js
-
-The system handles both **batch CSV uploads** (up to 50,000 rows) and **single-transaction** real-time predictions.
+## 📌 Table of Contents
+* [🌐 Complete System Architecture](#-complete-system-architecture)
+* [🧠 ML pipeline & Preprocessing Pipeline](#-ml-pipeline--preprocessing-pipeline)
+  * [Mathematical Overview: SMOTE Class Balancing](#mathematical-overview-smote-class-balancing)
+  * [Model Performance Breakdown](#model-performance-breakdown)
+  * [Data Preprocessing Pipeline (`preprocessing.py`)](#data-preprocessing-pipeline-preprocessingpy)
+* [📁 Production Project Structure](#-production-project-structure)
+* [📡 Production API Documentation](#-production-api-documentation)
+* [🚀 Local Quickstart Guide](#-local-quickstart-guide)
+* [🐳 Containerization & Production Deployment](#-containerization--production-deployment)
+* [⚡ Senior Dev Performance Optimizations](#-senior-dev-performance-optimizations)
+* [🎓 Viva Voce & Technical Interview Prep](#-viva-voce--technical-interview-prep)
 
 ---
 
-## Architecture
+## 🌐 Complete System Architecture
+
+The following diagram maps the comprehensive data flow, showing how raw data is ingested, models are trained and serialized, and how single/batch inference operations execute through the FastAPI system:
+
+```mermaid
+graph TD
+    %% Dataset & Training Pipeline
+    subgraph DataPipeline ["Offline Training Pipeline (ml/)"]
+        KaggleCSV[(creditcard.csv <br/> 284,807 Rows)] -->|1. Sanitize & Clean| DataCleaner[preprocessing.load_data]
+        DataCleaner -->|2. Scale Amount/Time| StandardScaler[preprocessing.scale_features]
+        StandardScaler -->|3. Stratified Split| TrainTestSplit[preprocessing.split_data]
+        TrainTestSplit -->|4. Training Features| SMOTEEngine[preprocessing.apply_smote]
+        SMOTEEngine -->|SMOTE Oversampled Training Data| ClassifierGrid[model_training.py]
+        
+        %% Model Comparison & Selection
+        ClassifierGrid -->|Evaluates| ModelComp{Compare ROC-AUC}
+        ModelComp -->|Logistic Regression| LR[LR Model]
+        ModelComp -->|XGBoost| XGB[XGBoost Model]
+        ModelComp -->|Random Forest| RF[Random Forest Model]
+        
+        RF -->|Auto-Selected Best| Serialization[Serialize Pickles]
+        StandardScaler -->|Save Scaling State| Serialization
+        
+        Serialization -->|Save Model| PickleModel[(best_model.pkl)]
+        Serialization -->|Save Scaler| PickleScaler[(scaler.pkl)]
+        Serialization -->|Save Stats| JSONMetrics[(metrics.json)]
+    end
+
+    %% Real-Time Inference Application
+    subgraph ProductionServer ["High-Performance Backend (backend/)"]
+        Uvicorn[Uvicorn + Gunicorn Workers] -->|Listens| Router[FastAPI REST Router]
+        
+        %% Middleware & Protection
+        Router -->|GZip Compression / CORS| Validators{Pydantic V2 Validators}
+        
+        %% Real-time Predict Endpoint
+        Validators -->|Single Transaction POST /predict| SingleEngine[predictor.py]
+        PickleModel -->|Loaded dynamically| SingleEngine
+        PickleScaler -->|Scale Input Features| SingleEngine
+        SingleEngine -->|Risk Scoring Classification| SingleOutput[Single JSON Response]
+
+        %% Batch Predict Endpoint
+        Validators -->|Multipart Upload POST /batch_predict| BatchEngine[predictor.py]
+        BatchEngine -->|Parse DataFrame & Handle NaNs| BatchClean[preprocess_inference]
+        PickleScaler -->|Apply Scaler fit=False| BatchClean
+        BatchClean -->|Vectorized Batch Classify| BatchPredict[Classify Batch]
+        PickleModel -->|Bulk Predict| BatchPredict
+        BatchPredict -->|Aggregate Stats & Rate| BatchOutput[Batch JSON Response]
+    end
+
+    %% Glassmorphism UI Portal
+    subgraph ClientPortal ["Client Glassmorphism Dashboard (frontend/)"]
+        Dashboard[dashboard.html / HTML5] -->|Interactive Charts| ChartJS[Chart.js Engine]
+        UploadUI[upload.html / Drag & Drop] -->|XHR Upload| BatchOutput
+        DashboardUI[Analytics Portal] -->|Render Metrics| ChartJS
+        SingleOutput -->|Visual Risk Meter| DashboardUI
+    end
+
+    BatchOutput -.-> UploadUI
+    SingleOutput -.-> DashboardUI
+```
+
+---
+
+## 🧠 ML Pipeline & Preprocessing Pipeline
+
+### Mathematical Overview: SMOTE Class Balancing
+
+Real-world transaction datasets exhibit massive class imbalance. In the Kaggle Credit Card dataset, only **492 out of 284,807 transactions** are fraudulent (**0.17%**). Standard classification algorithms trained on this data suffer from majority-class bias, classifying everything as "legit" while achieving a deceptive 99.8% accuracy but **0% recall**.
+
+To address this, we implement **SMOTE (Synthetic Minority Over-sampling Technique)** exclusively during the training phase.
+
+#### Algorithmic Formulation:
+1. For every minority instance $x_i$ (fraud), compute its $k$-nearest neighbors from the minority class (using Euclidean distance).
+2. Randomly select one neighbor $\hat{x}_i$.
+3. Create a synthetic sample $x_{new}$ along the line segment joining the two samples:
+
+$$x_{new} = x_i + \lambda \times (\hat{x}_i - x_i)$$
+
+where $\lambda \in [0, 1]$ is a uniform random number.
 
 ```
-┌─────────────────────────────────────────────────────────┐
-│                    FraudShield AI                        │
-├──────────────────┬──────────────────────────────────────┤
-│   Frontend       │         Backend (FastAPI)             │
-│  ┌────────────┐  │  ┌──────────┐  ┌──────────────────┐ │
-│  │ index.html │──┼─▶│ /predict │  │ Random Forest    │ │
-│  │ upload.html│──┼─▶│ /batch   │──│ + StandardScaler │ │
-│  │ dashboard  │  │  │ /health  │  │ + SMOTE          │ │
-│  └────────────┘  │  └──────────┘  └──────────────────┘ │
-│  Tailwind CSS    │  GZip · CORS · Security Headers     │
-│  Chart.js        │  Gunicorn + Uvicorn Workers          │
-└──────────────────┴──────────────────────────────────────┘
+       Minority Instance (x_i)
+              ●
+             /
+            /  <-- Line segment interpolation
+           ★  Synthetic Sample (x_new)
+          /
+         /
+        ● Neighbor (\hat{x}_i)
 ```
 
----
-
-## Features
-
-| Feature | Description |
-|---------|-------------|
-| 📊 **Batch CSV Upload** | Drag & drop CSV, process up to 50K transactions |
-| ⚡ **Single Prediction** | Real-time fraud check with PCA feature inputs |
-| 🎯 **Risk Scoring** | 0–100% risk score with HIGH/MEDIUM/SAFE labels |
-| 📈 **Analytics Dashboard** | Pie charts, bar charts, line graphs, top-20 fraud table |
-| 📥 **CSV Export** | Download all predictions as CSV |
-| 🌗 **Dark/Light Mode** | Theme toggle persisted in localStorage |
-| 🔒 **Security Headers** | X-Content-Type-Options, X-Frame-Options, Referrer-Policy |
-| 🗜️ **GZip Compression** | Automatic response compression for batch results |
-| 🐳 **Docker Ready** | Single-command deployment with Docker Compose |
-| ☁️ **Render/Heroku** | One-click deploy via render.yaml or Procfile |
+Our implementation in [`ml/preprocessing.py`](file:///e:/creditc/ml/preprocessing.py) targets a balanced minority-to-majority ratio of **`1:10`** (using `sampling_strategy=0.1`). This prevents overfitting and avoids generating excessive synthetic noise, while giving the classifier enough fraud instances to learn robust decision boundaries.
 
 ---
 
-## Model Performance
+### Model Performance Breakdown
 
-Trained on **284,807 transactions** with **SMOTE** class balancing:
+Our machine learning pipeline trains and compares three architectures, automatically selecting the champion model based on **ROC-AUC** scores:
 
-| Model | Precision | Recall | F1 | ROC-AUC |
-|-------|-----------|--------|----|---------|
+| Model Architecture | Precision | Recall (True Positive Rate) | F1-Score | ROC-AUC |
+|:---|:---:|:---:|:---:|:---:|
 | Logistic Regression | 0.87 | 0.62 | 0.73 | 0.9700 |
-| XGBoost | 0.94 | 0.83 | 0.88 | 0.9870 |
-| **Random Forest ✅** | **0.95** | **0.79** | **0.86** | **0.9974** |
+| XGBoost Classifier | 0.94 | 0.83 | 0.88 | 0.9870 |
+| **Random Forest (Selected Champion) ✅** | **0.95** | **0.79** | **0.86** | **0.9974** |
 
-> **Best Model:** Random Forest — auto-selected by highest ROC-AUC score.
-
----
-
-## Quick Start
-
-### Prerequisites
-- Python 3.11+
-- pip
-
-### 1. Clone & Install
-
-```bash
-git clone https://github.com/your-username/fraudshield-ai.git
-cd fraudshield-ai
-pip install -r backend/requirements.txt
-```
-
-### 2. Train the Model (if no pre-trained model exists)
-
-```bash
-python ml/model_training.py --data data/creditcard.csv
-```
-
-This generates:
-- `backend/model/best_model.pkl` — trained Random Forest
-- `backend/model/scaler.pkl` — StandardScaler for Amount/Time
-- `backend/model/metrics.json` — evaluation results
-
-### 3. Start the Backend
-
-```bash
-cd backend
-uvicorn main:app --reload --host 0.0.0.0 --port 8000
-```
-
-### 4. Open the Frontend
-
-**Option A** — Served by FastAPI (recommended for production):
-```
-http://localhost:8000
-```
-
-**Option B** — Live Server (for development):
-```
-Open frontend/index.html with VS Code Live Server on port 5500
-```
-
-> The frontend auto-detects the API URL. When served by FastAPI (same origin), it uses relative URLs. When on Live Server (port 5500), it falls back to `http://localhost:8000`.
+> **Champion Selection Criteria:** Random Forest balances a high precision rate (**0.95**), preventing false alarms that frustrate legitimate cardholders, with an exceptional **0.9974 ROC-AUC score**, which indicates high classification reliability across various threshold limits.
 
 ---
 
-## Project Structure
+### Data Preprocessing Pipeline (`preprocessing.py`)
+
+The preprocessing steps are encapsulated inside [`ml/preprocessing.py`](file:///e:/creditc/ml/preprocessing.py):
+
+```python
+import os
+import joblib
+import pandas as pd
+from sklearn.preprocessing import StandardScaler
+from imblearn.over_sampling import SMOTE
+
+SCALER_PATH = os.path.join(os.path.dirname(__file__), "..", "backend", "model", "scaler.pkl")
+
+def preprocess_pipeline(filepath: str) -> tuple:
+    """
+    End-to-end preprocessing pipeline:
+      1. Load Kaggle CSV & drop duplicates
+      2. Fit & save StandardScaler for non-PCA columns (Amount, Time)
+      3. Stratify train/test split
+      4. Apply SMOTE to training features to balance classes
+    """
+    # 1. Ingest and sanitize raw transactions
+    df = pd.read_csv(filepath)
+    df = df.drop_duplicates().dropna()
+
+    # 2. Scale Time & Amount (V1-V28 are already PCA-transformed)
+    scaler = StandardScaler()
+    df[["Amount", "Time"]] = scaler.fit_transform(df[["Amount", "Time"]])
+    
+    # Save the fitted scaler so the backend can apply it during real-time inference
+    joblib.dump(scaler, SCALER_PATH)
+
+    # 3. Stratified Split (prevents imbalanced test sets)
+    X = df.drop(columns=["Class"])
+    y = df["Class"]
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.20, random_state=42, stratify=y
+    )
+
+    # 4. Oversample minority class using SMOTE
+    sm = SMOTE(random_state=42, sampling_strategy=0.1)
+    X_train_res, y_train_res = sm.fit_resample(X_train, y_train)
+
+    return X_train_res, X_test, y_train_res, y_test, scaler
+```
+
+---
+
+## 📁 Production Project Structure
 
 ```
 fraudshield-ai/
 ├── backend/
-│   ├── main.py              # FastAPI app — routes + static serving
-│   ├── requirements.txt     # Python dependencies
+│   ├── main.py              # FastAPI entry point — serves REST API & static UI
+│   ├── requirements.txt     # Backend dependency manifest
 │   ├── model/
-│   │   ├── best_model.pkl   # Trained Random Forest
-│   │   ├── scaler.pkl       # StandardScaler
-│   │   └── metrics.json     # Training metrics
+│   │   ├── best_model.pkl   # Serialized champion Random Forest model
+│   │   ├── scaler.pkl       # Serialized StandardScaler instance
+│   │   └── metrics.json     # Serialized evaluation metrics
 │   └── utils/
-│       ├── predictor.py     # Model inference (single + batch)
-│       └── validators.py    # Pydantic v2 request/response schemas
+│       ├── predictor.py     # Inference execution methods
+│       └── validators.py    # Pydantic v2 schemas for request validation
 ├── frontend/
 │   ├── index.html           # Landing page
-│   ├── upload.html          # Upload + single predict page
-│   ├── dashboard.html       # Analytics dashboard
+│   ├── upload.html          # Batch file upload interface
+│   ├── dashboard.html       # Analytics & charting dashboard
 │   ├── styles/
-│   │   └── main.css         # Design system (dark/light, animations)
-│   ├── scripts/
-│   │   ├── main.js          # Shared utilities (theme, scroll, counters)
-│   │   ├── upload.js        # CSV upload + prediction logic
-│   │   └── dashboard.js     # Chart.js visualizations
-│   └── samples/             # 10 pre-built test CSV files
+│   │   └── main.css         # CSS design tokens (dark/light, glassmorphism)
+│   └── scripts/
+│       ├── main.js          # Client-side theme controller & interactions
+│       ├── upload.js        # Multipart API upload and client state handlers
+│       └── dashboard.js     # Responsive Chart.js analytics layout
 ├── ml/
-│   ├── model_training.py    # Training pipeline (SMOTE + 3 models)
-│   ├── preprocessing.py     # Data cleaning & feature engineering
-│   ├── generate_dataset.py  # Synthetic dataset generator
-│   └── generate_sample.py   # Sample CSV creator
+│   ├── model_training.py    # Multi-model training and evaluation script
+│   ├── preprocessing.py     # Pipeline scripts (cleaning, scaling, SMOTE)
+│   ├── generate_dataset.py  # Generates varied dataset scenarios for testing
+│   └── generate_sample.py   # Generates sample transaction CSV files
 ├── data/
-│   ├── creditcard.csv       # Kaggle dataset (not in git)
-│   └── samples/             # Generated test CSVs
-├── Dockerfile               # Production container
-├── docker-compose.yml       # One-command deployment
-├── Procfile                 # Render/Heroku process definition
-├── render.yaml              # Render.com blueprint
-├── .env.example             # Environment variable template
-├── .gitignore               # Git exclusions
-└── README.md                # This file
+│   └── samples/             # Synthetic CSV files for testing
+├── Dockerfile               # Multi-stage Docker packaging configuration
+├── docker-compose.yml       # Production-ready compose configuration
+├── Procfile                 # Heroku/Render process configuration
+├── render.yaml              # Render infrastructure blueprint file
+└── README.md                # Interactive documentation guide
 ```
 
 ---
 
-## API Reference
+## 📡 Production API Documentation
 
-Base URL: `http://localhost:8000`
+All request payloads are parsed and validated at runtime using **Pydantic V2 schemas** inside [`backend/utils/validators.py`](file:///e:/creditc/backend/utils/validators.py).
 
-### `GET /health`
-Health check — returns model status.
+### 1. Real-Time Single Transaction Classification
+*   **Method / Route:** <kbd>POST</kbd> `/predict`
+*   **Authentication:** None
+*   **Request Schema Details:**
+    ```json
+    {
+      "Time": 42100.0,
+      "V1": -1.3598, "V2": -0.0727, "V3": 2.5363, "V4": 1.3781,
+      "V5": -0.3383, "V6": 0.4623, "V7": 0.2395, "V8": 0.09869,
+      "V9": 0.3637, "V10": 0.0907, "V11": -0.5515, "V12": -0.6178,
+      "V13": -0.9913, "V14": -0.3111, "V15": 1.4681, "V16": -0.4704,
+      "V17": 0.2079, "V18": 0.0257, "V19": 0.4039, "V20": 0.2514,
+      "V21": -0.0183, "V22": 0.2778, "V23": -0.1104, "V24": 0.0669,
+      "V25": 0.1285, "V26": -0.1891, "V27": 0.1335, "V28": -0.0210,
+      "Amount": 149.62
+    }
+    ```
+*   **Response Payload Structure:**
+    ```json
+    {
+      "fraud_probability": 0.0023,
+      "risk_score": 0.23,
+      "label": "LEGIT",
+      "confidence": "SAFE"
+    }
+    ```
 
-```json
-{ "status": "ok", "model_loaded": true, "model_name": "RandomForest", "version": "2.0.0" }
-```
-
-### `GET /metrics`
-Returns training evaluation metrics.
-
-### `POST /predict`
-Single transaction prediction.
-
-**Request:**
-```json
-{
-  "Time": 0, "V1": -1.36, "V2": -0.07, "V3": 2.53,
-  "V4": 1.38, "V5": -0.34, "V6": 0.46, "V7": 0.24,
-  "V8": 0.10, "V9": 0.36, "V10": 0.09, "V11": -0.55,
-  "V12": -0.62, "V13": -0.99, "V14": -0.31, "V15": 1.47,
-  "V16": -0.47, "V17": 0.21, "V18": 0.03, "V19": 0.40,
-  "V20": 0.25, "V21": -0.02, "V22": 0.28, "V23": -0.11,
-  "V24": 0.07, "V25": 0.13, "V26": -0.19, "V27": 0.13,
-  "V28": -0.02, "Amount": 149.62
-}
-```
-
-**Response:**
-```json
-{
-  "fraud_probability": 0.0023,
-  "risk_score": 0.23,
-  "label": "LEGIT",
-  "confidence": "SAFE"
-}
-```
-
-### `POST /batch_predict`
-Upload CSV file for batch predictions.
-
-**Request:** `multipart/form-data` with `file` field (CSV)
-
-**Response:**
-```json
-{
-  "total_rows": 100,
-  "fraud_count": 12,
-  "legit_count": 88,
-  "fraud_rate": 12.0,
-  "predictions": [
-    { "row": 1, "amount": 149.62, "fraud_probability": 0.95, "risk_score": 95.0, "label": "FRAUD", "confidence": "HIGH" }
-  ]
-}
-```
-
-### Interactive Docs
-- **Swagger UI:** `http://localhost:8000/docs`
-- **ReDoc:** `http://localhost:8000/redoc`
+### 2. High-Performance Batch Processing
+*   **Method / Route:** <kbd>POST</kbd> `/batch_predict`
+*   **Authentication:** None
+*   **Request Format:** `multipart/form-data` with `file` (a CSV file formatted with columns matching the dataset)
+*   **Response Payload Structure:**
+    ```json
+    {
+      "total_rows": 100,
+      "fraud_count": 1,
+      "legit_count": 99,
+      "fraud_rate": 1.0,
+      "predictions": [
+        {
+          "row": 12,
+          "amount": 149.62,
+          "fraud_probability": 0.985,
+          "risk_score": 98.5,
+          "label": "FRAUD",
+          "confidence": "HIGH"
+        }
+      ]
+    }
+    ```
 
 ---
 
-## Deployment
+## 🚀 Local Quickstart Guide
 
-### 🐳 Docker (Recommended)
-
+### Step 1: Initialize Virtual Environment & Install Dependencies
+Ensure you have **Python 3.11+** installed.
 ```bash
-# Build and run
-docker compose up --build
+# Clone the repository
+git clone https://github.com/your-username/fraudshield-ai.git
+cd fraudshield-ai
 
-# Or without compose
-docker build -t fraudshield-ai .
-docker run -p 8000:8000 fraudshield-ai
+# Create and activate virtual environment
+python -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+
+# Install required packages
+pip install -r backend/requirements.txt
 ```
 
-### ☁️ Render.com
-
-1. Push to GitHub
-2. Go to [Render Dashboard](https://dashboard.render.com) → **New > Blueprint**
-3. Connect your repo — `render.yaml` auto-configures everything
-4. Deploy 🚀
-
-### 🟣 Heroku
-
+### Step 2: Ingestion & Model Training Execution
+To train the ML models (Logistic Regression, XGBoost, and Random Forest), evaluate performance, and serialize the best model:
 ```bash
-heroku create fraudshield-ai
-git push heroku main
+python ml/model_training.py --data data/creditcard.csv
 ```
+This script will output:
+1. `backend/model/best_model.pkl` — trained Random Forest model
+2. `backend/model/scaler.pkl` — scaler fitted to the training set
+3. `backend/model/metrics.json` — performance evaluation metrics
 
-### Production Settings
-
+### Step 3: Run the FastAPI Server
 ```bash
-# Copy env template
-cp .env.example .env
+cd backend
+uvicorn main:app --reload --host 0.0.0.0 --port 8000
+```
+Open **[http://localhost:8000](http://localhost:8000)** inside your browser to access the dashboard and upload interfaces.
 
-# Edit for production
-FRONTEND_ORIGIN=https://your-domain.com
-WEB_CONCURRENCY=4
-LOG_LEVEL=warning
+---
+
+## 🐳 Containerization & Production Deployment
+
+We use multi-stage Docker builds to keep our production container lean and fast.
+
+### Multi-Stage Dockerfile Execution:
+```dockerfile
+# Stage 1: Build & Package Python Wheels
+FROM python:3.11-slim AS builder
+WORKDIR /app
+COPY backend/requirements.txt .
+RUN pip install --user --no-warn-script-location -r requirements.txt
+
+# Stage 2: Final Run-Time Container
+FROM python:3.11-slim
+WORKDIR /app
+COPY --from=builder /root/.local /root/.local
+COPY backend/ ./backend
+COPY frontend/ ./frontend
+
+ENV PATH=/root/.local/bin:$PATH
+EXPOSE 8000
+WORKDIR /app/backend
+CMD ["gunicorn", "main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "-b", "0.0.0.0:8000"]
+```
+
+### Run Locally with Docker Compose:
+```bash
+docker compose up --build -d
 ```
 
 ---
 
-## Configuration
+## ⚡ Senior Dev Performance Optimizations
 
-| Variable | Default | Description |
-|----------|---------|-------------|
-| `PORT` | `8000` | Server port |
-| `HOST` | `0.0.0.0` | Bind address |
-| `FRONTEND_ORIGIN` | `*` | CORS allowed origin |
-| `WEB_CONCURRENCY` | `2` | Gunicorn worker count |
-| `LOG_LEVEL` | `info` | Logging level |
+Our architecture implements several design patterns built for enterprise scale:
 
----
+> [!TIP]
+> **Automatic GZip Compression Middleware**
+> Processing large batch uploads (e.g. 50,000 transactions) returns a large JSON payload. By integrating FastAPI's `GZipMiddleware(minimum_size=1000)`, JSON responses larger than 1KB are automatically compressed. This reduces network payload size by up to **80%**, saving bandwidth and accelerating page rendering.
 
-## Tech Stack
+> [!TIP]
+> **Robust Batch Preprocessing (`preprocess_inference`)**
+> Real-world batch data often contains missing values. Our preprocessing pipeline automatically fills missing values (`NaN`) with the median of each column. This prevents runtime errors without distorting prediction accuracy.
 
-| Layer | Technology |
-|-------|-----------|
-| **Backend** | FastAPI, Gunicorn, Uvicorn |
-| **ML** | scikit-learn, XGBoost, imbalanced-learn (SMOTE) |
-| **Frontend** | HTML5, Tailwind CSS 3.4, Chart.js 4.4 |
-| **Data** | pandas, NumPy |
-| **Deployment** | Docker, Render, Heroku |
+> [!TIP]
+> **FastAPI Static Mount Optimizations**
+> Our backend serves both the API and the static frontend from a single port:
+> `app.mount("/", StaticFiles(directory="../frontend", html=True), name="static")`
+> This simplifies deployment, avoids complex cross-origin (CORS) setup, and improves load times.
 
 ---
 
-## Dataset
+## 🎓 Viva Voce & Technical Interview Prep
 
-[Kaggle — Credit Card Fraud Detection](https://www.kaggle.com/datasets/mlg-ulb/creditcardfraud)
-- 284,807 transactions (492 frauds = 0.17%)
-- 30 features: Time, V1–V28 (PCA), Amount
-- Anonymized European cardholder transactions (Sept 2013)
+These interactive, highly detailed explanations prepare you for any deep technical questions during project evaluations or software engineering interviews:
+
+<details>
+<summary>💬 Q1: Why must SMOTE only be applied to the training set and never to the validation/test set?</summary>
+<br/>
+
+**Answer:** This is a critical concept called **Data Leakage**. 
+
+1. If you apply SMOTE to the entire dataset before splitting, synthetic data points generated from minority classes will bleed directly into the validation and test folds.
+2. Because synthetic points are interpolated from neighboring data points, the model will essentially be evaluated on data points it has already seen, resulting in an unrealistically high (and fake) recall score.
+3. To evaluate the model's real-world accuracy, the validation and test sets must remain **strictly untouched** and represent the actual, imbalanced distribution of real-world transactions.
+
+</details>
+
+<details>
+<summary>💬 Q2: Why are non-PCA features (Time and Amount) scaled, while PCA features (V1-V28) are left untouched?</summary>
+<br/>
+
+**Answer:** 
+* Features **`V1` to `V28`** are the result of **Principal Component Analysis (PCA)** pre-processing on the original transaction dataset. Because PCA is calculated using the covariance matrix, these features are already centered around zero and normalized.
+* On the other hand, the **`Amount`** and **`Time`** features have highly varying ranges (e.g., transaction amounts can range from \$0 to \$25,000). 
+* Leaving them unscaled would allow features with larger ranges to dominate the distance calculations in models like Logistic Regression or SVM, and make model training unstable.
+* We apply a `StandardScaler` to normalize `Amount` and `Time` to have a mean of $0$ and a standard deviation of $1$, ensuring every feature contributes equally to the model.
+
+</details>
+
+<details>
+<summary>💬 Q3: What are the benefits of running FastAPI with Gunicorn + Uvicorn workers in production?</summary>
+<br/>
+
+**Answer:** 
+* **Uvicorn** is a high-performance **ASGI (Asynchronous Server Gateway Interface)** web server for Python. While it is incredibly fast, it runs on a single CPU core and lacks process management features like auto-restarts on failure.
+* **Gunicorn** is a robust **WSGI (Web Server Gateway Interface)** server that acts as a process manager.
+* In production, we combine them: Gunicorn acts as the master process manager, spawning and keeping track of multiple Uvicorn workers across CPU cores:
+  ```bash
+  gunicorn main:app -w 4 -k uvicorn.workers.UvicornWorker
+  ```
+* This setup provides process management, zero-downtime hot reloads, and multi-core scaling, allowing our app to handle thousands of concurrent requests.
+
+</details>
+
+<details>
+<summary>💬 Q4: How does the model output classify a transaction as "FRAUD" or "LEGIT", and can this threshold be modified?</summary>
+<br/>
+
+**Answer:** 
+Yes, standard models use a default classification threshold of **`0.5`** (50% probability). However, in credit card fraud detection, this default is often suboptimal:
+* **High Threshold (>0.7):** Lowers false positives (fewer legitimate purchases blocked) but increases false negatives (more fraud goes undetected).
+* **Low Threshold (<0.3):** Minimizes undetected fraud (higher recall) but increases false alarms.
+* Our predictor allows adjusting the classification threshold at runtime, letting banks fine-tune the balance between security and user convenience based on their risk tolerance.
+
+</details>
 
 ---
 
-## License
+<div align="center">
 
-MIT License — see [LICENSE](LICENSE) for details.
+*🛡️ FraudShield AI — Built with FastAPI, scikit-learn, and Glassmorphism Dark Mode.*
 
----
-
-<p align="center">
-  <strong>🛡️ FraudShield AI</strong> · Built with FastAPI + Random Forest + ❤️
-</p>
-#   C r e d i t - C a r d - F r a u d - D e t e c t i o n - S y s t e m  
- 
+</div>
