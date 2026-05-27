@@ -19,6 +19,4 @@ for path in [ROOT, BACKEND]:
 # ── Import FastAPI app ──────────────────────────────────────────────────
 from main import app  # noqa: E402  (backend/main.py)
 
-# Mount prefix dynamically for Vercel experimentalServices routing
-app.root_path = "/_/backend"
 

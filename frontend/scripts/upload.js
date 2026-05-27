@@ -9,12 +9,8 @@
 
 // ── Auto-detect API base URL ──────────────────────────────────────────
 const API_BASE = (() => {
-  // If running on Vercel under experimentalServices
-  if (window.location.hostname.includes('vercel.app')) {
-    return '/_/backend';
-  }
   const port = window.location.port;
-  // FastAPI/Render production (same-origin) → relative paths
+  // Production same-origin (Render, Vercel, Docker) → relative paths
   if (!port || (port !== '5500' && port !== '5501' && port !== '3000')) {
     return '';
   }
